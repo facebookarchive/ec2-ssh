@@ -1,0 +1,65 @@
+Metadata-Version: 1.0
+Name: ec2-ssh
+Version: 1.0
+Summary: SSH into EC2 instances via tag name
+Home-page: https://github.com/Instagram/ec2-ssh
+Author: Shayne Sweeney
+Author-email: shayne@instagram.com
+License: MIT
+Description: 
+        EC2-SSH
+        =======
+        
+        A simple command line utility, allowing you to SSH into you Amazon EC2 instances
+        by their "Name" tag.
+        
+        A few examples:
+        
+        ::
+        
+            % ec2-ssh nginx2
+            # equivalent to
+            # ssh ubuntu@ec2-123-45-67-89.compute-1.amazonaws.com
+        
+            % ec2-ssh root@appserver
+            % ec2-ssh deploy@nginx2 sudo restart nginx
+        
+            # accompanying ec2-host script
+        
+            # w/o arg: prints all active instances
+            % ec2-host
+            django1 ec2-123-45-67-89.compute-1.amazonaws.com
+            django2 ec2-132-45-67-89.compute-1.amazonaws.com
+            django3 ec2-231-45-67-89.compute-1.amazonaws.com
+        
+            # w/ arg: prints host name of matching instance
+            % ec2-host django2
+            django2 ec2-132-45-67-89.compute-1.amazonaws.com
+        
+        
+        Links
+        `````
+        
+        * `Website <http://github.com/Instagram/ec2-ssh>`_
+        * `Instagram <http://instagram.com>`_
+        
+        Changelog
+        `````````
+        
+        * 1.0 - initial release
+        
+        
+Keywords: amazon,aws,ec2,ami,ssh,cloud,boto
+Platform: UNKNOWN
+Classifier: Programming Language :: Python
+Classifier: Development Status :: 5 - Production/Stable
+Classifier: Intended Audience :: Developers
+Classifier: Natural Language :: English
+Classifier: Environment :: Console
+Classifier: Environment :: Web Environment
+Classifier: Intended Audience :: Developers
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Operating System :: OS Independent
+Classifier: Topic :: Software Development :: Libraries :: Python Modules
+Classifier: Topic :: Internet :: WWW/HTTP
+Classifier: Topic :: Utilities

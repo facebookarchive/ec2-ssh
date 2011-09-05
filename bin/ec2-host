@@ -1,0 +1,113 @@
+#!/usr/bin/env python
+
+import os
+import sys
+import getopt
+
+from sys import stderr
+
+import boto
+
+
+_ec2 = None
+
+
+def short_usage():
+    print >>stderr, """Usage: ec2-host [-k KEY] [-s SECRET] [NAME]
+    ec2-host django8 => ec2-53-19-113-121.compute-1.amazonaws.com
+Try `ssh-distillery --help' for more information."""
+
+
+def full_usage():
+    print >>stderr, """Usage: ec2-host [-k KEY] [-s SECRET] [NAME]
+Prints server host name.
+
+      --help                 display this help and exit
+  -k, --aws-key KEY          Amazon EC2 Key, defaults to ENV[AWS_ACCESS_KEY_ID]
+  -s, --aws-secret SECRET    Amazon EC2 Secret, defaults to ENV[AWS_SECRET_ACCESS_KEY]"""
+
+
+def list_instances():
+  instance_pairs = []
+  for instance in ec2_instances():
+      instance_name = instance.tags.get("Name")
+      if instance.public_dns_name:
+          pair = (instance_name, instance.public_dns_name)
+          instance_pairs.append(pair)
+  for pair in sorted(instance_pairs, key=lambda p: p[0]):
+      print "%s\t%s" % pair
+
+
+def print_host(name):
+    filters = {'tag:Name': name}
+    instances = ec2_instances(filters=filters)
+
+    if len(instances) == 0:
+        print >>stderr, 'Unable to match instance named "%s"' % name
+        short_usage()
+        sys.exit(1)
+
+    for instance in instances:
+        if instance.public_dns_name:
+            print instance.public_dns_name
+            continue
+
+
+def ec2_instances(**kwargs):
+    instances = []
+    for reservation in _ec2.get_all_instances(**kwargs):
+        instances.extend(reservation.instances)
+    return instances
+
+
+def main(argv):
+    try:
+        opts, args = getopt.getopt(argv, "hLk:s:",
+                                         ["help", "aws-key", "aws-secret"])
+    except getopt.GetoptError, err:
+        print >>sys.stderr, err
+        short_usage()
+        sys.exit(2)
+
+    aws_key = os.environ.get("AWS_ACCESS_KEY_ID")
+    aws_secret = os.environ.get("AWS_SECRET_ACCESS_KEY")
+
+    for opt, arg in opts:
+        if opt in ("-h", "--help"):
+            full_usage()
+            sys.exit()
+        elif opt in("-k", "--aws-key"):
+            aws_key = arg
+        elif opt in("-s", "--aws-secret"):
+            aws_secret = arg
+
+    if not aws_key or not aws_secret:
+        if not aws_key:
+            print >>sys.stderr,\
+            "AWS_ACCESS_KEY_ID not set in environment and not",\
+            "specified by --aws-key KEY or -k KEY"
+
+        if not aws_secret:
+            print >>sys.stderr,\
+            "AWS_SECRET_ACCESS_KEY not set in environment and not",\
+            "specified by --aws-secret SECRET or -s SECRET"
+
+        short_usage()
+        sys.exit(2)
+
+    global _ec2
+    _ec2 = boto.connect_ec2(aws_key, aws_secret)
+
+    argc = len(args)
+    if argc == 0:
+        list_instances()
+        sys.exit()
+    else:
+        if argc > 1:
+            print >>stderr, "Warning: more than one name given"
+
+        name = args[0]
+        print_host(name)
+
+if __name__ == "__main__":
+    main(sys.argv[1:])
