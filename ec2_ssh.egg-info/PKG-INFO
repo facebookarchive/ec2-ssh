@@ -1,6 +1,6 @@
 Metadata-Version: 1.0
 Name: ec2-ssh
-Version: 1.0
+Version: 1.1
 Summary: SSH into EC2 instances via tag name
 Home-page: https://github.com/Instagram/ec2-ssh
 Author: Shayne Sweeney

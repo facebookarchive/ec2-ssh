@@ -28,4 +28,8 @@ host=$(ec2-host $inst)
 
 # pass all other parameters (${@:2}) to ssh allowing
 # things like: ec2-ssh nginx uptime
-test -n "$host" && exec sh -c "ssh $user@$host ${@:2}"
+cmd="echo \\\". ~/.bashrc && PS1='\[\e]0;$inst: \w\\\a\]\[\\\033[01;32m\]$inst\[\\\033[00m\]:\[\\\033[01;34m\]\w\[\\\033[00m\]\\\$ '\\\" > ~/.ec2sshrc; /bin/bash --rcfile .ec2sshrc -i"
+if test "${@:2}"; then
+    cmd="${@:2}"
+fi
+test -n "$host" && exec sh -c "ssh -t $user@$host \"$cmd\""
