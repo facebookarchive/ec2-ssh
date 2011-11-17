@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -e
+set -e 
 
 usage() {
     cat<<EOF
@@ -36,7 +36,7 @@ done
 shift $((OPTIND - 1))
 
 # support user@instance-name format
-IFS="@"; declare -a hostparts=($1)
+IFS="@"; declare -a hostparts=($1) 
 
 inst="${hostparts[1]}"
 user="${hostparts[0]}"

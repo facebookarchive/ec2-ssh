@@ -80,9 +80,9 @@ def main(argv):
         if opt in ("-h", "--help"):
             full_usage()
             sys.exit()
-        elif opt in ("-k", "--aws-key"):
+        elif opt in("-k", "--aws-key"):
             aws_key = arg
-        elif opt in ("-s", "--aws-secret"):
+        elif opt in("-s", "--aws-secret"):
             aws_secret = arg
         elif opt in ("-r", "--region"):
             region = arg
