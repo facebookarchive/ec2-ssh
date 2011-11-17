@@ -1,10 +1,10 @@
 #!/bin/bash
 
-set -e 
+set -e
 
 usage() {
     cat<<EOF
-Usage: ec2-ssh [-k KEY] [-s SECRET] [-r REGION] <instance-name>
+Usage: ec2-ssh [-k KEY] [-s SECRET] [-r REGION] [-t TAG] <instance-name>
 
 Open an ssh connection to an EC2 instance where <instance-name>=tag:value.
 The 'tag:' portion of <instance-name> is optional, and defaults to 'Name'.
@@ -36,7 +36,7 @@ done
 shift $((OPTIND - 1))
 
 # support user@instance-name format
-IFS="@"; declare -a hostparts=($1) 
+IFS="@"; declare -a hostparts=($1)
 
 inst="${hostparts[1]}"
 user="${hostparts[0]}"
@@ -67,4 +67,4 @@ cmd="echo \\\". ~/.bashrc && PS1='\[\e]0;$inst: \w\\\a\]\[\\\033[01;32m\]$inst\[
 if test "${@:2}"; then
     cmd="${@:2}"
 fi
-test -n "$host" && exec sh -c "ssh -t $user@$host \"$cmd\""
+test -n "$host" && echo "Connecting to $host." && exec sh -c "ssh -t $user@$host \"$cmd\""

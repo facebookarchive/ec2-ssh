@@ -15,7 +15,7 @@ _ec2 = None
 def short_usage():
     print >>stderr, """Usage: ec2-host [-k KEY] [-s SECRET] [-r REGION] [-t TAG] [NAME]
     ec2-host django8 => ec2-53-19-113-121.compute-1.amazonaws.com
-Try `ssh-distillery --help' for more information."""
+Try `ec2-ssh --help' for more information."""
 
 
 def full_usage():
@@ -29,30 +29,15 @@ Prints server host name.
   -t, --tag TAG              Tag name for searching, defaults to 'Name'"""
 
 
-def list_instances(tag="Name"):
-  instance_pairs = []
-  for instance in ec2_instances():
-      instance_name = instance.tags.get(tag)
-      if instance.public_dns_name:
-          pair = (instance_name, instance.public_dns_name)
-          instance_pairs.append(pair)
-  for pair in sorted(instance_pairs, key=lambda p: p[0]):
-      print "%s\t%s" % pair
-
-
-def print_host(value, tag="Name"):
-    filters = {'tag:%s' % tag: value}
-    instances = ec2_instances(filters=filters)
-
-    if len(instances) == 0:
-        print >>stderr, 'Unable to match instance named "%s"' % value
-        short_usage()
-        sys.exit(1)
-
+def list_instances(instances, tag="Name"):
+    instance_pairs = []
     for instance in instances:
+        instance_name = instance.tags.get(tag)
         if instance.public_dns_name:
-            print instance.public_dns_name
-            continue
+            pair = (instance_name, instance.public_dns_name)
+            instance_pairs.append(pair)
+    for pair in sorted(instance_pairs, key=lambda p: p[0]):
+        print "%s\t%s" % pair
 
 
 def ec2_instances(**kwargs):
@@ -65,7 +50,7 @@ def ec2_instances(**kwargs):
 def main(argv):
     try:
         opts, args = getopt.getopt(argv, "hLk:s:r:t:",
-                                         ["help", "aws-key", "aws-secret", "region", "tag"])
+                                         ["help", "aws-key=", "aws-secret=", "region=", "tag="])
     except getopt.GetoptError, err:
         print >>sys.stderr, err
         short_usage()
@@ -103,23 +88,42 @@ def main(argv):
         short_usage()
         sys.exit(2)
 
-    region = region and boto.ec2.get_region(region, 
-                                            aws_access_key_id=aws_key, 
+    region = region and boto.ec2.get_region(region,
+                                            aws_access_key_id=aws_key,
                                             aws_secret_access_key=aws_secret)
 
     global _ec2
     _ec2 = boto.ec2.connection.EC2Connection(aws_key, aws_secret, region=region)
 
     argc = len(args)
-    if argc == 0:
-        list_instances(tag)
-        sys.exit()
-    else:
-        if argc > 1:
-            print >>stderr, "Warning: more than one name given"
 
-        value = args[0]
-        print_host(value, tag)
+    kwargs = {}
+    if argc == 1:
+        kwargs['filters'] = {'tag:%s' % tag: args[0]}
+    elif argc > 1:
+        print >>stderr, "Warning: more than one name given"
+        sys.exit(1)
+        return
+
+    instances = ec2_instances(**kwargs)
+    num_instances = len(instances)
+
+    if num_instances == 1:
+        print instances[0].public_dns_name
+
+        sys.exit(0)
+        return
+    elif num_instances == 0 or num_instances > 1:
+        list_instances(instances, tag)
+
+        sys.exit(0)
+        return
+    else:
+        print >>stderr, 'Unable to match "%s"' % args[0]
+        short_usage()
+
+        sys.exit(1)
+        return
 
 if __name__ == "__main__":
     main(sys.argv[1:])
