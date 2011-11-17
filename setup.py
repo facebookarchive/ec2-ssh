@@ -39,6 +39,8 @@ Changelog
 `````````
 
 * 1.0 - initial release
+* 1.1 - override prompt (PS1) to show tag name
+* 1.1.1 - Add line echoing host before establishing SSH connection
 
 """
 
@@ -49,7 +51,7 @@ from setuptools import setup
 
 setup(
     name = "ec2-ssh",
-    version = "1.1",
+    version = "1.1.1",
     author = "Shayne Sweeney",
     author_email = "shayne@instagram.com",
     description = "SSH into EC2 instances via tag name",
