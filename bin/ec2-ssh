@@ -1,16 +1,39 @@
 #!/bin/bash
-#/ Usage: ec2-ssh <instance-name>
-#/ Open ssh connection to EC2 instance where tag:Name=<instance-name>
-#/ For list of instance, run ec2-host without any paramteres
 
 set -e
 
-test $# -eq 0 -o $(expr "$*" : ".*--help") \
-                -ne 0 -o $(expr "$*" : ".*-h") -ne 0 && {
-    grep ^#/ < $0 |
-    cut -c4-
-    exit
+usage() {
+    cat<<EOF
+Usage: ec2-ssh [-k KEY] [-s SECRET] [-r REGION] <instance-name>
+
+Open an ssh connection to an EC2 instance where <instance-name>=tag:value.
+The 'tag:' portion of <instance-name> is optional, and defaults to 'Name'.
+For a list of instances, run ec2-host without any paramteres
+
+  -h            display this help and exit
+  -k, KEY       Amazon EC2 Key, defaults to \$AWS_ACCESS_KEY_ID
+  -s, SECRET    Amazon EC2 Secret, defaults to \$AWS_SECRET_ACCESS_KEY
+  -r, REGION    Amazon EC2 Region, defaults to us-east-1
+  -t, TAG       Tag name for searching, defaults to 'Name'
+EOF
 }
+
+# Print usage message and exit if no arguments are given
+test $# -eq 0 && { usage; exit; }
+
+# Process options
+cmd="ec2-host"
+while getopts ":hk:s:r:t:" opt; do
+    case $opt in
+        h  ) usage; exit 1;;
+        k  ) cmd="$cmd -k $OPTARG";;
+        s  ) cmd="$cmd -s $OPTARG";;
+        r  ) cmd="$cmd -r $OPTARG";;
+        t  ) cmd="$cmd -t $OPTARG";;
+        \? ) usage; exit 1
+    esac
+done
+shift $((OPTIND - 1))
 
 # support user@instance-name format
 IFS="@"; declare -a hostparts=($1)
@@ -18,13 +41,25 @@ IFS="@"; declare -a hostparts=($1)
 inst="${hostparts[1]}"
 user="${hostparts[0]}"
 
-if test -z "$inst"; then
-    inst="$1"
-    user="ubuntu"
+if [ -z "$inst" ]; then
+  inst="$1"
+  user="ubuntu"
+fi
+
+# support tag:value format for identifying instances
+IFS=":"; declare -a tagparts=($inst)
+
+tag="${tagparts[0]}"
+value="${tagparts[1]}"
+
+if [ -z "$value" ]; then
+    value="$inst"
+else
+    cmd="$cmd -t $tag"
 fi
 
 # get host from ec2-host command
-host=$(ec2-host $inst)
+host=$(eval "$cmd $inst")
 
 # pass all other parameters (${@:2}) to ssh allowing
 # things like: ec2-ssh nginx uptime
@@ -32,4 +67,4 @@ cmd="echo \\\". ~/.bashrc && PS1='\[\e]0;$inst: \w\\\a\]\[\\\033[01;32m\]$inst\[
 if test "${@:2}"; then
     cmd="${@:2}"
 fi
-test -n "$host" && echo "Connecting to $host." && exec sh -c "ssh -t $user@$host \"$cmd\""
+test -n "$host" && exec sh -c "ssh -t $user@$host \"$cmd\""

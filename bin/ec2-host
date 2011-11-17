@@ -6,31 +6,33 @@ import getopt
 
 from sys import stderr
 
-import boto
+import boto.ec2
 
 
 _ec2 = None
 
 
 def short_usage():
-    print >>stderr, """Usage: ec2-host [-k KEY] [-s SECRET] [NAME]
+    print >>stderr, """Usage: ec2-host [-k KEY] [-s SECRET] [-r REGION] [-t TAG] [NAME]
     ec2-host django8 => ec2-53-19-113-121.compute-1.amazonaws.com
 Try `ssh-distillery --help' for more information."""
 
 
 def full_usage():
-    print >>stderr, """Usage: ec2-host [-k KEY] [-s SECRET] [NAME]
+    print >>stderr, """Usage: ec2-host [-k KEY] [-s SECRET] [-r REGION] [-t TAG] [NAME]
 Prints server host name.
 
       --help                 display this help and exit
   -k, --aws-key KEY          Amazon EC2 Key, defaults to ENV[AWS_ACCESS_KEY_ID]
-  -s, --aws-secret SECRET    Amazon EC2 Secret, defaults to ENV[AWS_SECRET_ACCESS_KEY]"""
+  -s, --aws-secret SECRET    Amazon EC2 Secret, defaults to ENV[AWS_SECRET_ACCESS_KEY]
+  -r, --region REGION        Amazon EC2 Region, defaults to us-east-1 or ENV[AWS_EC2_REGION]
+  -t, --tag TAG              Tag name for searching, defaults to 'Name'"""
 
 
-def list_instances():
+def list_instances(tag="Name"):
   instance_pairs = []
   for instance in ec2_instances():
-      instance_name = instance.tags.get("Name")
+      instance_name = instance.tags.get(tag)
       if instance.public_dns_name:
           pair = (instance_name, instance.public_dns_name)
           instance_pairs.append(pair)
@@ -38,12 +40,12 @@ def list_instances():
       print "%s\t%s" % pair
 
 
-def print_host(name):
-    filters = {'tag:Name': name}
+def print_host(value, tag="Name"):
+    filters = {'tag:%s' % tag: value}
     instances = ec2_instances(filters=filters)
 
     if len(instances) == 0:
-        print >>stderr, 'Unable to match instance named "%s"' % name
+        print >>stderr, 'Unable to match instance named "%s"' % value
         short_usage()
         sys.exit(1)
 
@@ -62,8 +64,8 @@ def ec2_instances(**kwargs):
 
 def main(argv):
     try:
-        opts, args = getopt.getopt(argv, "hLk:s:",
-                                         ["help", "aws-key", "aws-secret"])
+        opts, args = getopt.getopt(argv, "hLk:s:r:t:",
+                                         ["help", "aws-key", "aws-secret", "region", "tag"])
     except getopt.GetoptError, err:
         print >>sys.stderr, err
         short_usage()
@@ -71,15 +73,21 @@ def main(argv):
 
     aws_key = os.environ.get("AWS_ACCESS_KEY_ID")
     aws_secret = os.environ.get("AWS_SECRET_ACCESS_KEY")
+    region = os.environ.get("AWS_EC2_REGION")
+    tag = "Name"
 
     for opt, arg in opts:
         if opt in ("-h", "--help"):
             full_usage()
             sys.exit()
-        elif opt in("-k", "--aws-key"):
+        elif opt in ("-k", "--aws-key"):
             aws_key = arg
-        elif opt in("-s", "--aws-secret"):
+        elif opt in ("-s", "--aws-secret"):
             aws_secret = arg
+        elif opt in ("-r", "--region"):
+            region = arg
+        elif opt in ("-t", "--tag"):
+            tag = arg
 
     if not aws_key or not aws_secret:
         if not aws_key:
@@ -95,19 +103,23 @@ def main(argv):
         short_usage()
         sys.exit(2)
 
+    region = region and boto.ec2.get_region(region, 
+                                            aws_access_key_id=aws_key, 
+                                            aws_secret_access_key=aws_secret)
+
     global _ec2
-    _ec2 = boto.connect_ec2(aws_key, aws_secret)
+    _ec2 = boto.ec2.connection.EC2Connection(aws_key, aws_secret, region=region)
 
     argc = len(args)
     if argc == 0:
-        list_instances()
+        list_instances(tag)
         sys.exit()
     else:
         if argc > 1:
             print >>stderr, "Warning: more than one name given"
 
-        name = args[0]
-        print_host(name)
+        value = args[0]
+        print_host(value, tag)
 
 if __name__ == "__main__":
     main(sys.argv[1:])
