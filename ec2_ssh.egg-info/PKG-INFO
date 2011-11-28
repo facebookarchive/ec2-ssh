@@ -1,6 +1,6 @@
 Metadata-Version: 1.0
 Name: ec2-ssh
-Version: 1.2
+Version: 1.2.1
 Summary: SSH into EC2 instances via tag name
 Home-page: https://github.com/Instagram/ec2-ssh
 Author: Shayne Sweeney
@@ -50,7 +50,7 @@ Description:
         * 1.1 - override prompt (PS1) to show tag name
         * 1.1.1 - Add line echoing host before establishing SSH connection
         * 1.2 - Merged pull requests to add region and tag support
-        
+        * 1.2.1 - Fix issue when ec2-host finds one offline instance with same name as an online instance
         
 Keywords: amazon,aws,ec2,ami,ssh,cloud,boto
 Platform: UNKNOWN

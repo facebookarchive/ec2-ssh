@@ -42,7 +42,7 @@ Changelog
 * 1.1 - override prompt (PS1) to show tag name
 * 1.1.1 - Add line echoing host before establishing SSH connection
 * 1.2 - Merged pull requests to add region and tag support
-
+* 1.2.1 - Fix issue when ec2-host finds one offline instance with same name as an online instance
 """
 
 
@@ -52,7 +52,7 @@ from setuptools import setup
 
 setup(
     name = "ec2-ssh",
-    version = "1.2",
+    version = "1.2.1",
     author = "Shayne Sweeney",
     author_email = "shayne@instagram.com",
     description = "SSH into EC2 instances via tag name",
