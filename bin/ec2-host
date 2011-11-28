@@ -29,21 +29,20 @@ Prints server host name.
   -t, --tag TAG              Tag name for searching, defaults to 'Name'"""
 
 
-def list_instances(instances, tag="Name"):
-    instance_pairs = []
-    for instance in instances:
-        instance_name = instance.tags.get(tag)
-        if instance.public_dns_name:
-            pair = (instance_name, instance.public_dns_name)
-            instance_pairs.append(pair)
-    for pair in sorted(instance_pairs, key=lambda p: p[0]):
-        print "%s\t%s" % pair
-
-
-def ec2_instances(**kwargs):
+def ec2_active_instances(label_tag, filters):
     instances = []
-    for reservation in _ec2.get_all_instances(**kwargs):
-        instances.extend(reservation.instances)
+    kwargs = {}
+
+    if filters:
+        kwargs['filters'] = filters
+
+    reservations = _ec2.get_all_instances(**kwargs)
+    for reservation in reservations:
+        for instance in reservation.instances:
+            instance_name = instance.tags.get(label_tag)
+            if instance.public_dns_name:
+                pair = (instance_name, instance.public_dns_name)
+                instances.append(pair)
     return instances
 
 
@@ -97,24 +96,26 @@ def main(argv):
 
     argc = len(args)
 
-    kwargs = {}
+    filters = {}
     if argc == 1:
-        kwargs['filters'] = {'tag:%s' % tag: args[0]}
+        filters['tag:%s' % tag] = args[0]
     elif argc > 1:
         print >>stderr, "Warning: more than one name given"
         sys.exit(1)
         return
 
-    instances = ec2_instances(**kwargs)
-    num_instances = len(instances)
+    instances = ec2_active_instances(tag, filters)
 
-    if num_instances == 1:
-        print instances[0].public_dns_name
+    numinstances = len(instances)
+
+    if numinstances == 1:
+        print instances[0][1]  # [1] = dns
 
         sys.exit(0)
         return
-    elif num_instances == 0 or num_instances > 1:
-        list_instances(instances, tag)
+    elif numinstances == 0 or numinstances > 1:
+        for pair in sorted(instances, key=lambda p: p[0]):
+            print "%s\t%s" % pair
 
         sys.exit(0)
         return
